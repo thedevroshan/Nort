@@ -59,7 +59,7 @@ export const Register = async (req: Request, res: Response):Promise<void> => {
             password: hashedPassword,
         })
 
-        await SendVerificatioEmail({email, htmlPath: path.join(__dirname, '../public/email.html')})
+        await SendVerificatioEmail({email, htmlPath: path.join(__dirname, '../views/email.html')})
 
         res.status(201).json({
             ok: true,
@@ -106,7 +106,7 @@ export const EmailVerification = async (req: Request, res: Response):Promise<voi
 
         await User.updateOne({_id: isUserExists.id},{$set: {verified: true}})
 
-        res.sendFile(path.join(__dirname, '../public/verified.html'))
+        res.sendFile(path.join(__dirname, '../views/verified.html'))
     }
     catch (error) {
         INTERNAL_SERVER_ERROR(res, ()=>{
@@ -137,7 +137,7 @@ export const Login =  async(req: Request, res: Response):Promise<void> => {
         }
 
         if(!user.verified){
-            await SendVerificatioEmail({email: user.email, htmlPath: path.join(__dirname, '../public/email.html')})
+            await SendVerificatioEmail({email: user.email, htmlPath: path.join(__dirname, '../views/email.html')})
 
             res.status(400).json({
                 ok: false,

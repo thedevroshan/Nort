@@ -3,6 +3,7 @@ import {OTP} from "../models/otp.model";
 export interface IValidatedOTP {
     ok: boolean;
     msg: string;
+    userId: string | null;
 }
 
 
@@ -36,6 +37,7 @@ export const ValidateOTP = async (otp:string):Promise<null | IValidatedOTP> => {
             return {
                 ok: false,
                 msg: "OTP does not exist.",
+                userId: null
             }
         }
 
@@ -44,13 +46,15 @@ export const ValidateOTP = async (otp:string):Promise<null | IValidatedOTP> => {
             return {
                 ok: false,
                 msg: "OTP expired",
+                userId: null
             }
         }
 
         await OTP.deleteOne({_id: isOTP._id})
         return {
             ok: true,
-            msg: "Validated."
+            msg: "Validated.",
+            userId: isOTP.userId as string
         }
     }
     catch (error){

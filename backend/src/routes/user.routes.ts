@@ -10,7 +10,9 @@ import {
     ChangeUsername,
     ChangeEmailRequest,
     ChangeEmail,
-    ChangePassword
+    ChangePassword,
+    ForgotPassword,
+    ResetPassword
 } from "../controllers/user.controller";
 
 // Utils
@@ -25,5 +27,7 @@ router.put("/change-username", isLoggedIn, ChangeUsername)
 router.put("/change-email-request", isLoggedIn, ChangeEmailRequest)
 router.put("/change-email", isLoggedIn,ValidateEmail, ChangeEmail)
 router.put("/change-password", isLoggedIn,ValidatePassword,ChangePassword)
+router.put("/forgot-password", ForgotPassword)
+router.put("/reset-password",ValidatePassword, ResetPassword)
 
 export default router

@@ -13,6 +13,7 @@ import {SendEmail} from "../utils/SendEmail";
 import {validationResult} from "express-validator";
 import {SendVerificatioEmail} from "../utils/SendVerificationEmail";
 import {EncryptPassword} from "../utils/EncryptPassword";
+import {GenerateJwt, JwtPayload, VerifyJWT} from "../utils/JWT";
 
 export const GetUserInfo = async(req: express.Request, res: express.Response):Promise<void> => {
     try{
@@ -78,7 +79,8 @@ export const ChangeEmailRequest = async(req: express.Request, res: express.Respo
         }
 
         const otp:string = await OTPGenerator(6, 3, req?.user?.id, parseInt(expirationTime))
-        await SendEmail(req?.user?.email, 'Change Email', `Here, is your OTP to change your email. Note: This OTP will be expired in 2 minute\n${otp}`)
+        await SendEmail({email: req?.user?.email, subject: 'Change Email', text: `Here, is your OTP to change your email. Note: This OTP will be expired in 2 minute\n${otp}`
+    })
         res.status(200).json({ok: true, msg:"Email Sent!!"})
     }
     catch(error){
@@ -114,7 +116,7 @@ export const ChangeEmail = async(req: express.Request, res: express.Response):Pr
         }
 
         await User.findByIdAndUpdate({_id: req?.user?._id}, {$set: {email, verified: false}}, {new: true})
-        await SendVerificatioEmail({email, htmlPath: path.join(__dirname, '../public/email.html')})
+        await SendVerificatioEmail({email, htmlPath: path.join(__dirname, '../views/email.html')})
 
         res.status(200).json({ok: true, msg:"Successfully Updated"})
     }
@@ -127,7 +129,7 @@ export const ChangeEmail = async(req: express.Request, res: express.Response):Pr
 
 export const ChangePassword = async(req: express.Request, res: express.Response):Promise<void> => {
     try{
-        const {currentPassword, password} = req.body
+        const {current_password, password} = req.body
         const result =validationResult(req)
         if(!result.isEmpty()){
             res.status(400).json({ok: false, msg:result.array()})
@@ -140,7 +142,7 @@ export const ChangePassword = async(req: express.Request, res: express.Response)
             return
         }
 
-        const isCurretPassword:boolean = await bcryptjs.compare(currentPassword, user.password)
+        const isCurretPassword:boolean = await bcryptjs.compare(current_password, user.password)
         if(!isCurretPassword){
             res.status(400).json({ok: false, msg:"Incorrect current password."})
             return;
@@ -154,6 +156,76 @@ export const ChangePassword = async(req: express.Request, res: express.Response)
 
         await User.updateOne({_id: req?.user?._id}, {$set: {password: hashedPassword}}).exec()
 
+        res.status(200).json({ok: true, msg:"Successfully Updated"})
+    }
+    catch(error){
+        INTERNAL_SERVER_ERROR(res, ()=>{
+            console.log(error)
+        })
+    }
+}
+
+export const ForgotPassword = async(req: express.Request, res: express.Response):Promise<void> => {
+    try{
+        const {email_or_username} = req.query;
+        const user = await User.findOne({email: email_or_username})||await User.findOne({username: email_or_username})
+
+        if(!user){
+            res.status(404).json({ok: false, msg:"User not found."})
+            return;
+        }
+
+        const token:string | null = GenerateJwt({userId: user?.id}, {expiresIn: '5m'})
+        if(token == null){
+            res.status(401).json({ok: false, msg:"Unable to send reset password link."})
+            return;
+        }
+        const isSent:boolean | string = await SendEmail({email: user?.email,subject: "Forgot Password", htmlPath: path.join(__dirname, '../views/reset-password-email.html'), replace:['TOKEN', 'FRONTEND'], replaceWith:[`${token}`, `http://localhost:5000`]})
+
+        if(!isSent){
+            res.status(400).json({
+                ok: false,
+                msg: 'Unable to send otp.'
+            })
+            return;
+        }
+
+        res.status(200).json({ok: true, msg:"OTP successfully sent to email."})
+    }
+    catch(error){
+        INTERNAL_SERVER_ERROR(res, ()=>{
+            console.log(error)
+        })
+    }
+}
+
+export const ResetPassword = async(req: express.Request, res: express.Response):Promise<void> => {
+    try{
+        const {password, confirm_password, token} = req.body;
+        const result =validationResult(req)
+        if(!result.isEmpty()){
+            res.status(400).json({ok: false, msg:result.array()})
+            return;
+        }
+
+        if(password !== confirm_password){
+            res.status(400).json({ok: false, msg:"Password and Confirm Password should same."})
+            return;
+        }
+
+        const verifyToken:JwtPayload | null = VerifyJWT(token);
+        if(verifyToken == null){
+            res.status(400).json({ok: false, msg:"Invalid token."})
+            return;
+        }
+
+        const hashedPassword:string | null = await EncryptPassword(confirm_password)
+        if(hashedPassword == null){
+            res.status(400).json({ok: false, msg:'Unable to reset your password.'})
+            return;
+        }
+
+        await User.updateOne({_id: verifyToken.userId}, {$set: {password: hashedPassword}}).exec()
         res.status(200).json({ok: true, msg:"Successfully Updated"})
     }
     catch(error){
