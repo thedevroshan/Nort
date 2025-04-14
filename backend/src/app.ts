@@ -11,6 +11,8 @@ import {connectDB} from "./config/connectDB";
 // Routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import pageRoutes from "./routes/page.routes";
+import roleRoutes from "./routes/role.routes";
 
 
 const app = express();
@@ -25,6 +27,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/page', pageRoutes);
+app.use('/api/v1/role', roleRoutes);
 
 app.listen(port, ():void => {
     console.log(`Server running on port http://localhost:${port}`);

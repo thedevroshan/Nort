@@ -12,9 +12,6 @@ export interface IUser extends Document {
     password: string;
     profile_pic: string;
     verified: boolean;
-    pages: Schema.Types.ObjectId[];
-    teams: Schema.Types.ObjectId[];
-    templates: Schema.Types.ObjectId[];
 }
 
 const userSchema:Schema<IUser> = new Schema({
@@ -42,15 +39,6 @@ const userSchema:Schema<IUser> = new Schema({
     verified: {
         type: Boolean,
         default: false
-    },
-    pages: {
-        type: [Schema.Types.ObjectId],
-    },
-    teams: {
-        type: [Schema.Types.ObjectId],
-    },
-    templates: {
-        type: [Schema.Types.ObjectId],
     }
 },{timestamps:true});
 
